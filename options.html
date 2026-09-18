@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube History Summarizer - Options & BYOK</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #151d2f;
+      --card-hover: #1c263d;
+      --border: #24324d;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --primary-dim: rgba(56, 189, 248, 0.12);
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-width: 460px;
+      max-width: 580px;
+      margin: 0 auto;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: white;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .badge-sync {
+      font-size: 10px;
+      background: var(--primary-dim);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      flex: 1;
+      background-color: #060911;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      padding: 8px 14px;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      border: 1px solid #38bdf8;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0369a1, #075985);
+      border-color: #7dd3fc;
+    }
+
+    .btn-secondary {
+      background-color: var(--card-hover);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background-color: #24324d;
+    }
+
+    .btn-danger {
+      background-color: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .btn-danger:hover {
+      background-color: rgba(239, 68, 68, 0.25);
+    }
+
+    .alert {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      margin-top: 12px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .alert-success {
+      background-color: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+    }
+    .alert-error {
+      background-color: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .instructions {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+    .instructions ol {
+      padding-left: 18px;
+      margin-top: 6px;
+    }
+    .instructions li {
+      margin-bottom: 4px;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-badge">YT</div>
+    <div>
+      <h1>Extension Options</h1>
+      <div class="subtitle">Bring Your Own Key (BYOK) & Server Configuration</div>
+    </div>
+  </div>
+
+  <!-- BYOK Card -->
+  <div class="card">
+    <div class="card-title">
+      <span>Google AI Studio API Key</span>
+      <span class="badge-sync">chrome.storage.sync</span>
+    </div>
+    <div class="card-desc">
+      Supply your personal, free Google AI Studio key. Stored in <code>chrome.storage.sync</code> so it automatically syncs across all your Chrome browsers, and forwarded to the backend to run Gemini 2.5 Flash on your free quota.
+      <br /><br />
+      <strong>Shared Default:</strong> If left blank, your requests will safely fall back to the backend's shared <code>GEMINI_API_KEY</code> running <strong>gemini-2.5-flash</strong> (leveraging its massive 1M context window and free tier inclusion).
+    </div>
+
+    <div class="form-group">
+      <label for="input-api-key">Gemini API Key</label>
+      <div class="input-row">
+        <input id="input-api-key" type="password" placeholder="AIzaSy..." spellcheck="false" autocomplete="off" />
+        <button id="btn-toggle-key" class="btn-secondary" type="button">Show</button>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <strong>How to get your free key:</strong>
+      <ol>
+        <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio (aistudio.google.com)</a>.</li>
+        <li>Click <strong>Create API Key</strong> (100% free tier, 15 RPM with Gemini 2.5 Flash).</li>
+        <li>Paste it above and click <strong>Save Settings</strong>.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Backend Configuration Card -->
+  <div class="card">
+    <div class="card-title">
+      <span>FastAPI Backend URL</span>
+    </div>
+    <div class="card-desc">
+      The server that parses YouTube transcripts with <code>youtube-transcript-api</code> and calls Gemini.
+    </div>
+
+    <div class="form-group">
+      <label for="input-backend-url">Backend Address</label>
+      <div class="input-row">
+        <input id="input-backend-url" type="text" value="http://localhost:8000" spellcheck="false" />
+        <button id="btn-test-backend" class="btn-secondary" type="button">Test Connection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div style="display: flex; gap: 10px;">
+    <button id="btn-save" class="btn-primary" type="button">
+      <span>💾 Save All Settings</span>
+    </button>
+    <button id="btn-clear-key" class="btn-danger" type="button">
+      <span>Clear Key</span>
+    </button>
+  </div>
+
+  <!-- Status alert -->
+  <div id="status-alert" class="alert"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

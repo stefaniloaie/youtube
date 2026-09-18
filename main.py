@@ -5,7 +5,7 @@ Extracts video transcripts and synthesizes them using the Google GenAI SDK (Gemi
 
 import os
 from typing import List, Optional, Union
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from youtube_transcript_api import (
@@ -45,7 +45,16 @@ class VideoItem(BaseModel):
     duration: Optional[str] = None
 
 class SummarizeRequest(BaseModel):
+    model_config = {"extra": "ignore"}
     videos: List[VideoItem]
+    gemini_api_key: Optional[str] = Field(
+        default=None,
+        description="Free Google AI Studio key passed by user under BYOK architecture."
+    )
+    apiKey: Optional[str] = Field(
+        default=None,
+        description="Optional alias for gemini_api_key."
+    )
 
 class SummarizeResponse(BaseModel):
     digest: str
@@ -115,12 +124,19 @@ def fetch_single_transcript(video_id: str) -> tuple[str, bool]:
         print(f"Warning: Transcript fetch failed for {video_id}: {exc}")
         return ("[Transcript Unavailable]", False)
 
-def get_genai_client() -> genai.Client:
-    api_key = os.getenv("GEMINI_API_KEY")
+def get_genai_client(custom_api_key: Optional[str] = None) -> genai.Client:
+    """
+    Initializes a Gemini client using the user's custom key if provided,
+    otherwise falls back to the server's GEMINI_API_KEY environment variable.
+    """
+    api_key = (custom_api_key or "").strip() or os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(
-            status_code=500,
-            detail="GEMINI_API_KEY environment variable is not configured on the backend.",
+            status_code=400,
+            detail=(
+                "Gemini API key is required. Please enter your Gemini API key in the extension "
+                "settings or configure GEMINI_API_KEY in the backend server."
+            ),
         )
     return genai.Client(api_key=api_key)
 
@@ -133,9 +149,23 @@ def health_check():
     }
 
 @app.post("/api/summarize", response_model=SummarizeResponse)
-def summarize_history(payload: Union[SummarizeRequest, List[VideoItem]] = Body(...)):
-    # Normalize input whether sent as { "videos": [...] } or raw [...]
-    videos = payload.videos if isinstance(payload, SummarizeRequest) else payload
+def summarize_history(
+    payload: Union[SummarizeRequest, List[VideoItem]] = Body(...),
+    gemini_api_key: Optional[str] = Header(None, alias="gemini_api_key"),
+    x_gemini_api_key: Optional[str] = Header(None, alias="x-gemini-api-key"),
+):
+    # Normalize input whether sent as header, { "videos": [...], "gemini_api_key": "..." } or raw [...]
+    videos: List[VideoItem] = []
+    user_api_key: Optional[str] = gemini_api_key or x_gemini_api_key
+
+    if isinstance(payload, SummarizeRequest):
+        videos = payload.videos
+        if payload.gemini_api_key and payload.gemini_api_key.strip():
+            user_api_key = payload.gemini_api_key.strip()
+        elif payload.apiKey and payload.apiKey.strip():
+            user_api_key = payload.apiKey.strip()
+    else:
+        videos = payload
 
     if not videos:
         raise HTTPException(status_code=400, detail="No video items were provided in the request.")
@@ -158,12 +188,13 @@ def summarize_history(payload: Union[SummarizeRequest, List[VideoItem]] = Body(.
 
     full_bundle = "\n\n".join(bundle_parts)
 
-    # 2. Invoke Google GenAI Gemini Model
-    client = get_genai_client()
+    # 2. Invoke Google GenAI Gemini Model with user key or environment key
+    client = get_genai_client(user_api_key)
 
-    # Candidate models prioritized: gemini-2.5-flash as specified, with graceful fallbacks
+    # Candidate models prioritized: gemini-2.5-flash as the ideal shared default, with graceful fallbacks
     models_to_try = [
         os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        "gemini-1.5-flash",
         "gemini-3.8-flash",
         "gemini-3.1-flash-lite",
     ]

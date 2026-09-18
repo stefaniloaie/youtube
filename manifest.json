@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube History Summarizer",
+  "version": "1.0.1",
+  "description": "Read your cross-device YouTube watch history on demand and synthesize video transcripts with Google Gemini.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://*.youtube.com/*",
+    "https://youtube.com/*",
+    "http://localhost/*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "YouTube History Summarizer"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  }
+}

@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube History Summarizer</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #151d2f;
+      --card-hover: #1c263d;
+      --border: #24324d;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --primary-dim: rgba(56, 189, 248, 0.12);
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 480px;
+      max-height: 590px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.4;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.2);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3a4e75;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-badge {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: white;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+
+    h1 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .header-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .badge {
+      font-size: 10px;
+      background: var(--primary-dim);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 3px 7px;
+      border-radius: 6px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Section selector bar */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .select-section {
+      background-color: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-icon {
+      background-color: var(--card-bg);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-icon:hover {
+      background-color: var(--card-hover);
+      color: var(--text);
+    }
+
+    /* Video checklist container */
+    .checklist-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .checklist-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+
+    .checklist-stats {
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .checklist-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0 2px;
+    }
+    .btn-link:hover {
+      color: var(--primary-hover);
+    }
+
+    .video-list {
+      max-height: 210px;
+      overflow-y: auto;
+      divide-y: 1px solid var(--border);
+    }
+
+    .video-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(36, 50, 77, 0.6);
+      transition: background-color 0.15s ease;
+    }
+    .video-row:last-child {
+      border-bottom: none;
+    }
+    .video-row:hover {
+      background-color: var(--card-hover);
+    }
+    .video-row.selected {
+      background-color: rgba(56, 189, 248, 0.04);
+    }
+
+    .video-checkbox {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      min-width: 16px;
+    }
+
+    .video-thumb {
+      width: 58px;
+      height: 33px;
+      border-radius: 4px;
+      object-fit: cover;
+      background-color: #000;
+      min-width: 58px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .video-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .video-title {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+
+    .video-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .meta-channel {
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .duration-badge {
+      background-color: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 9px;
+    }
+
+    .empty-state {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    /* Primary Action */
+    .action-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      border: 1px solid #38bdf8;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.25);
+      transition: all 0.15s ease;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #0369a1, #075985);
+      border-color: #7dd3fc;
+      transform: translateY(-1px);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .status-bar.error-state {
+      background-color: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      min-width: 14px;
+      border: 2px solid rgba(56, 189, 248, 0.25);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-top: 2px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Output Section */
+    .output-section {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .output-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #cbd5e1;
+    }
+
+    .btn-secondary {
+      background-color: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s ease;
+    }
+    .btn-secondary:hover {
+      background-color: var(--card-hover);
+    }
+
+    .output-box {
+      background-color: #060911;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 260px;
+      overflow-y: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #e2e8f0;
+    }
+
+    /* Settings panel */
+    .settings-panel {
+      display: none;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 11px;
+    }
+
+    .settings-section-title {
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .settings-label {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .settings-input {
+      flex: 1;
+      background-color: #060911;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: monospace;
+      outline: none;
+    }
+    .settings-input:focus {
+      border-color: var(--primary);
+    }
+
+    .settings-btn {
+      background-color: var(--card-hover);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s ease;
+    }
+    .settings-btn:hover {
+      background-color: #3b4e72;
+    }
+
+    .settings-hint {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      line-height: 1.3;
+      margin-top: -4px;
+      margin-bottom: 8px;
+    }
+
+    /* Footer */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+    }
+
+    .backend-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--success);
+    }
+    .status-dot.error {
+      background-color: var(--danger);
+    }
+
+    .settings-toggle {
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      font-size: 10px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">
+      <div class="logo-badge">YT</div>
+      <div>
+        <h1>YouTube History Digest</h1>
+        <div class="header-sub">Select watched videos to summarize with AI</div>
+      </div>
+    </div>
+    <span class="badge">Gemini 2.5 Flash</span>
+  </div>
+
+  <!-- Filter & Refresh Bar -->
+  <div class="filter-bar">
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Filter:</span>
+      <select id="select-section" class="select-section" title="Filter by date">
+        <option value="today" selected>Today's Videos</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="all">All Recent History</option>
+      </select>
+    </div>
+    <button id="btn-refresh" class="btn-icon" title="Reload watch history from YouTube">
+      <span>🔄 Refresh History</span>
+    </button>
+  </div>
+
+  <!-- Video Checklist Card -->
+  <div class="checklist-card">
+    <div class="checklist-header">
+      <span id="checklist-stats" class="checklist-stats">Loading Today's videos...</span>
+      <div class="checklist-actions">
+        <button id="btn-select-all" class="btn-link">Select All</button>
+        <span style="color: var(--border);">|</span>
+        <button id="btn-deselect-all" class="btn-link">Deselect All</button>
+      </div>
+    </div>
+    <div id="video-list" class="video-list">
+      <div class="empty-state">
+        <div class="spinner" style="margin: 0 auto 8px auto;"></div>
+        <div>Reading your YouTube watch history for Today...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Button -->
+  <div class="action-row">
+    <button id="btn-summarize" class="btn-primary" disabled>
+      <span>✨ Summarize Selected Videos (0)</span>
+    </button>
+  </div>
+
+  <!-- Settings Panel (Collapsible) -->
+  <div id="settings-panel" class="settings-panel">
+    <div class="settings-section-title">
+      <span>⚙️ Settings & Credentials (BYOK)</span>
+      <span style="font-size: 10px; color: var(--primary);">chrome.storage.sync</span>
+    </div>
+
+    <!-- Gemini API Key Input -->
+    <div class="settings-label">
+      <span>Google AI Studio Key (BYOK)</span>
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--primary); text-decoration: none; font-size: 10px;">Get Free Key ↗</a>
+    </div>
+    <div class="settings-row">
+      <input id="input-api-key" type="password" class="settings-input" placeholder="AIzaSy... (leave blank to use server default)" />
+      <button id="btn-toggle-key" class="settings-btn" title="Toggle show/hide">Show</button>
+    </div>
+    <div class="settings-hint">
+      Bring Your Own Key: Stored in <code>chrome.storage.sync</code>. Forwards to backend to call Gemini 2.5 Flash on your free quota.
+    </div>
+
+    <!-- FastAPI Backend URL -->
+    <div class="settings-label">
+      <span>FastAPI Backend URL</span>
+    </div>
+    <div class="settings-row">
+      <input id="input-backend-url" class="settings-input" value="http://localhost:8000" />
+      <button id="btn-test-backend" class="settings-btn" title="Test if uvicorn is reachable">Test</button>
+    </div>
+    <div class="settings-hint">
+      Address where your Python server is running (default: http://localhost:8000).
+    </div>
+
+    <!-- Save Settings Button -->
+    <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
+      <button id="btn-save-settings" class="btn-primary" style="padding: 7px 12px; font-size: 11px;">
+        <span>Save to Sync</span>
+      </button>
+      <button id="btn-clear-key" class="settings-btn" title="Clear saved API key">
+        Clear Key
+      </button>
+      <button id="btn-open-options" class="settings-btn" title="Open full options in a tab" style="margin-left: auto;">
+        Options Page ↗
+      </button>
+    </div>
+    <div id="settings-feedback" style="margin-top: 6px; font-size: 10px; min-height: 14px;"></div>
+  </div>
+
+  <!-- Status & Error Alert -->
+  <div id="status-bar" class="status-bar">
+    <div id="status-spinner" class="spinner"></div>
+    <div id="status-text">Processing...</div>
+  </div>
+
+  <!-- Output Section -->
+  <div id="output-section" class="output-section">
+    <div class="output-header">
+      <span class="output-title">Structured Intelligence Digest</span>
+      <button id="btn-copy" class="btn-secondary">
+        <span id="copy-label">📋 Copy Markdown</span>
+      </button>
+    </div>
+    <div id="output-box" class="output-box"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="backend-status" id="status-indicator-click" title="Click to test backend connection">
+      <span id="backend-dot" class="status-dot"></span>
+      <span id="backend-text">Backend: localhost:8000</span>
+    </div>
+    <button id="btn-toggle-settings" class="settings-toggle">⚙️ Settings & API Key</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
