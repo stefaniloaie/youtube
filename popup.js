@@ -303,15 +303,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const errMsg = err?.message || String(err);
       checklistStats.textContent = "0 videos loaded";
       videoListEl.innerHTML = `
-        <div class="empty-state" style="color: #fca5a5; text-align: left; padding: 14px 10px;">
-          <strong style="display: block; margin-bottom: 4px; font-size: 12px;">⚠️ ${errMsg}</strong>
-          <div style="font-size: 11px; margin-top: 8px; color: #cbd5e1; line-height: 1.5;">
-            <strong>Quick Checklist:</strong><br/>
-            1. Open <a href="https://www.youtube.com/feed/history" target="_blank" style="color: #38bdf8; text-decoration: underline;">youtube.com/feed/history</a> to verify you are signed in.<br/>
-            2. Make sure YouTube Watch History is <strong>turned ON</strong> (not paused).<br/>
-            3. Try selecting <strong>"All Recent History"</strong> from the dropdown above.<br/>
-            4. If you just watched a video, refresh YouTube once and click <strong>"🔄 Refresh History"</strong>.
-          </div>
+        <div class="empty-state" style="color: #fca5a5;">
+          <strong>Error reading history</strong>
+          <div style="font-size: 11px; margin-top: 4px; color: #cbd5e1;">${errMsg}</div>
         </div>
       `;
       setStatus(errMsg, true, true);
