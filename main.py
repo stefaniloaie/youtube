@@ -174,9 +174,13 @@ def summarize_history(
     available_count = 0
     unavailable_count = 0
 
-    # 1. Fetch transcripts for all videos
+# 1. Fetch transcripts for all non-short videos
     for item in videos:
         title = item.title.strip() or f"Video {item.videoId}"
+        # Skip Shorts if present in title or URL
+        if "/shorts/" in (item.url or "") or any(tag in title.lower() for tag in ["#shorts", "#short"]):
+            print(f"Skipping short video: {title}")
+            continue
         transcript_text, is_available = fetch_single_transcript(item.videoId)
 
         if is_available:

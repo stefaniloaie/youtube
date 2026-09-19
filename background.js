@@ -137,6 +137,7 @@ function parseWatchHistorySections(ytData, requestedFilter = "today") {
       const contents = sectionNode.contents || [];
 
       for (const item of contents) {
+        if (isShortVideo(item, item.videoRenderer)) continue;
         if (item.videoRenderer && item.videoRenderer.videoId) {
           const v = formatVideoItem(item.videoRenderer, sectionTitle);
           if (v && !seenIds.has(v.videoId)) {
@@ -163,6 +164,7 @@ function parseWatchHistorySections(ytData, requestedFilter = "today") {
     const fallbackVideos = [];
     function traverse(node) {
       if (!node || typeof node !== "object" || fallbackVideos.length >= 30) return;
+      if (isShortVideo(node, node.videoRenderer)) return;
       if (node.videoRenderer && node.videoRenderer.videoId) {
         const v = formatVideoItem(node.videoRenderer, "Today");
         if (v && !seenIds.has(v.videoId)) {
@@ -217,6 +219,32 @@ function parseWatchHistorySections(ytData, requestedFilter = "today") {
     sections: sectionsFound.map((s) => ({ title: s.title, count: s.count, isToday: s.isToday })),
     activeSection: "All Recent"
   };
+}
+
+function isShortVideo(itemNode, vr) {
+  // Check reelItemRenderer or shortsLockupViewModel
+  if (itemNode.reelItemRenderer || itemNode.shortsLockupViewModel) return true;
+  
+  // Check navigationEndpoint for /shorts/
+  const navUrl = vr?.navigationEndpoint?.commandMetadata?.webCommandMetadata?.url || '';
+  if (navUrl.includes('/shorts/')) return true;
+
+  // Check title hashtags (#shorts, #short)
+  let title = '';
+  if (vr?.title?.runs) title = vr.title.runs.map(r => r.text).join('');
+  else if (vr?.title?.simpleText) title = vr.title.simpleText;
+  if (/#shorts|#short/i.test(title)) return true;
+
+  // Check length text (e.g. <= 60 seconds if format like 0:45 or 0:30)
+  const lenText = vr?.lengthText?.simpleText || '';
+  // if duration is under 60 seconds and has overlay style SHORTS
+  const overlays = vr?.thumbnailOverlays || [];
+  for (const o of overlays) {
+    const style = o?.thumbnailOverlayTimeStatusRenderer?.style;
+    if (style === 'SHORTS') return true;
+  }
+
+  return false;
 }
 
 function formatVideoItem(vr, sectionTitle) {

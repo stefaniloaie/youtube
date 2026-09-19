@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const payload = {
       gemini_api_key: apiKey,
-      backendUrl: backendUrl || "http://localhost:8000"
+      backendUrl: backendUrl || "https://youtube-production-9f45.up.railway.app"
     };
 
     const storage = (chrome.storage && chrome.storage.sync) ? chrome.storage.sync : (chrome.storage ? chrome.storage.local : null);

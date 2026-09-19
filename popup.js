@@ -4,7 +4,7 @@
  * and sends selected videos to FastAPI + Gemini for summarization.
  */
 
-let backendUrl = "http://localhost:8000";
+let backendUrl = "https://youtube-production-9f45.up.railway.app";
 let geminiApiKey = "";
 let currentVideos = [];
 let selectedVideoIds = new Set();
@@ -278,7 +278,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         throw new Error(response?.error || "Could not retrieve YouTube history. Make sure you are signed in at https://www.youtube.com.");
       }
 
-      currentVideos = response.videos || [];
+      // Filter out any YouTube Shorts
+      const rawVideos = response.videos || [];
+      currentVideos = rawVideos.filter(v => {
+        if (!v) return false;
+        if (v.url && v.url.includes('/shorts/')) return false;
+        if (v.title && (/#shorts\b|#short\b/i.test(v.title))) return false;
+        return true;
+      });
 
       // Check if sections metadata exists and update select dropdown options
       if (Array.isArray(response.sections) && response.sections.length > 0) {
