@@ -58,36 +58,46 @@ async function handleFetchWatchHistory(sectionFilter = "today") {
  * Extracts and parses the ytInitialData JSON object from raw HTML
  */
 function extractYtInitialData(html) {
-  // Pattern 1: var ytInitialData = {...};
-  const regexVar = /var\s+ytInitialData\s*=\s*({.+?});\s*<\/script>/s;
-  const matchVar = html.match(regexVar);
-  if (matchVar && matchVar[1]) {
-    try {
-      return JSON.parse(matchVar[1]);
-    } catch (e) {
-      console.warn("Direct JSON.parse failed on var match:", e);
-    }
-  }
+  // Find the start index of the ytInitialData JSON object using multiple patterns
+  const patterns = [
+    /var\s+ytInitialData\s*=\s*\{/,
+    /window\["ytInitialData"\]\s*=\s*\{/,
+    /ytInitialData\s*=\s*\{/,
+  ];
 
-  // Pattern 2: window["ytInitialData"] = {...};
-  const regexWindow = /window\["ytInitialData"\]\s*=\s*({.+?});\s*<\/script>/s;
-  const matchWindow = html.match(regexWindow);
-  if (matchWindow && matchWindow[1]) {
-    try {
-      return JSON.parse(matchWindow[1]);
-    } catch (e) {
-      console.warn("Direct JSON.parse failed on window match:", e);
-    }
-  }
+  for (const pattern of patterns) {
+    const match = pattern.exec(html);
+    if (!match) continue;
 
-  // Pattern 3: ytInitialData = {...};
-  const regexLoose = /ytInitialData\s*=\s*({.+?});/s;
-  const matchLoose = html.match(regexLoose);
-  if (matchLoose && matchLoose[1]) {
+    // Find the opening brace position
+    const startBrace = html.indexOf("{", match.index + match[0].length - 1);
+    if (startBrace === -1) continue;
+
+    // Walk the string counting braces to find the matching closing brace
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    let end = -1;
+
+    for (let i = startBrace; i < html.length; i++) {
+      const ch = html[i];
+      if (escape) { escape = false; continue; }
+      if (ch === "\\" && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) { end = i; break; }
+      }
+    }
+
+    if (end === -1) continue;
+
     try {
-      return JSON.parse(matchLoose[1]);
+      return JSON.parse(html.slice(startBrace, end + 1));
     } catch (e) {
-      console.warn("Direct JSON.parse failed on loose match:", e);
+      console.warn("JSON.parse failed for pattern", pattern, e);
     }
   }
 
