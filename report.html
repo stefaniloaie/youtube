@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Watch History Intelligence Report</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #0f172a;
+      --card-border: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #7dd3fc;
+      --accent: #ef4444;
+      --success: #34d399;
+      --code-bg: #030712;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --card-border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --primary: #0284c7;
+        --primary-hover: #0369a1;
+        --accent: #dc2626;
+        --success: #10b981;
+        --code-bg: #f1f5f9;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 32px 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-badge {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      font-weight: 900;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #030712;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: var(--card-bg);
+      color: var(--text);
+      border-color: var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--card-border);
+    }
+
+    .meta-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .meta-badges {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pill {
+      background-color: rgba(56, 189, 248, 0.12);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .report-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 32px 36px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .markdown-body h2 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      margin-top: 28px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--card-border);
+      color: var(--primary);
+    }
+
+    .markdown-body h2:first-child {
+      margin-top: 0;
+    }
+
+    .markdown-body h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .markdown-body p {
+      margin-bottom: 14px;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .markdown-body ul {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    .markdown-body li {
+      margin-bottom: 8px;
+      font-size: 14.5px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .markdown-body strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .markdown-body code {
+      background-color: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+
+    .notification {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: var(--success);
+      color: #030712;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-bar">
+      <div class="brand">
+        <div class="logo-badge">YT</div>
+        <div>
+          <h1>Watch History Synthesis</h1>
+          <div class="subtitle" id="report-timestamp">Generated report</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-copy-report" class="btn btn-secondary" title="Copy full markdown">
+          <span>📋 Copy Summary</span>
+        </button>
+        <button id="btn-download-md" class="btn btn-primary" title="Save as .md file">
+          <span>📥 Download as Markdown (.md)</span>
+        </button>
+        <button id="btn-close-tab" class="btn btn-secondary" title="Close this tab">
+          <span>✕ Close Tab</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="meta-card" id="meta-card">
+      <div id="meta-stats">Loading synthesis payload...</div>
+      <div class="meta-badges">
+        <span class="pill">Gemini 2.5 Flash</span>
+        <span class="pill" id="pill-videos">0 Videos</span>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <div id="report-content" class="markdown-body">
+        <div class="empty-state">
+          <h3>No summary found in storage</h3>
+          <p>Please open the YouTube History Summarizer extension popup, select your watched videos, and click "Summarize".</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="notification">
+    <span id="toast-message">Copied to clipboard!</span>
+  </div>
+
+  <script src="report.js"></script>
+</body>
+</html>

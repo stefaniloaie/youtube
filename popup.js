@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const outputSection = document.getElementById("output-section");
   const outputBox = document.getElementById("output-box");
   const btnCopy = document.getElementById("btn-copy");
+  const viewReportBtn = document.getElementById("viewReportBtn");
   const copyLabel = document.getElementById("copy-label");
   const backendDot = document.getElementById("backend-dot");
   const backendText = document.getElementById("backend-text");
@@ -514,7 +515,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       const data = await backendResponse.json();
-      currentDigest = data.digest || "No summary returned.";
+      currentDigest = data.digest || data.summary || "No summary returned.";
+      
+      // Save latestSummary payload to chrome.storage.local for the Full-Screen Report Viewer
+      if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({
+          latestSummary: currentDigest,
+          latestSummaryTimestamp: new Date().toLocaleString([], { 
+            year: 'numeric', month: 'short', day: 'numeric', 
+            hour: '2-digit', minute: '2-digit' 
+          }),
+          latestSummaryVideosCount: selectedVideos.length,
+        });
+      }
 
       setStatus("", false);
       outputSection.style.display = "flex";
@@ -530,6 +543,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateSummarizeButton();
     }
   });
+
+
+  // Open Full-Screen Report in new tab
+  if (viewReportBtn) {
+    viewReportBtn.addEventListener("click", () => {
+      if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
+        chrome.tabs.create({ url: chrome.runtime.getURL("report.html") });
+      } else {
+        window.open("report.html", "_blank");
+      }
+    });
+  }
 
   // Copy to clipboard
   btnCopy.addEventListener("click", async () => {
