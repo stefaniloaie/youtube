@@ -55,49 +55,111 @@ async function handleFetchWatchHistory(sectionFilter = "today") {
 }
 
 /**
- * Extracts and parses the ytInitialData JSON object from raw HTML
+ * Extracts and parses the ytInitialData JSON object from raw HTML using a robust bracket-counting scanner.
+ * Avoids regex pitfalls where non-greedy patterns terminate on early nested braces.
  */
 function extractYtInitialData(html) {
-  // Find the start index of the ytInitialData JSON object using multiple patterns
-  const patterns = [
-    /var\s+ytInitialData\s*=\s*\{/,
-    /window\["ytInitialData"\]\s*=\s*\{/,
-    /ytInitialData\s*=\s*\{/,
+  if (!html || typeof html !== "string") return null;
+
+  // Search patterns for where ytInitialData assignment begins
+  const candidateMarkers = [
+    "var ytInitialData = {",
+    "var ytInitialData={",
+    "window[\"ytInitialData\"] = {",
+    "window[\"ytInitialData\"]={",
+    "window['ytInitialData'] = {",
+    "window['ytInitialData']={",
+    "ytInitialData = {",
+    "ytInitialData={"
   ];
 
-  for (const pattern of patterns) {
-    const match = pattern.exec(html);
-    if (!match) continue;
+  for (const marker of candidateMarkers) {
+    let searchPos = 0;
+    while (searchPos < html.length) {
+      const markerIndex = html.indexOf(marker, searchPos);
+      if (markerIndex === -1) break;
 
-    // Find the opening brace position
-    const startBrace = html.indexOf("{", match.index + match[0].length - 1);
-    if (startBrace === -1) continue;
+      const braceIndex = html.indexOf("{", markerIndex);
+      if (braceIndex !== -1) {
+        const jsonStr = extractBalancedJsonObject(html, braceIndex);
+        if (jsonStr) {
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed && typeof parsed === "object") {
+              return parsed;
+            }
+          } catch (e) {
+            console.warn("Bracket scanner found JSON fragment that failed JSON.parse:", e);
+          }
+        }
+      }
+      searchPos = markerIndex + marker.length;
+    }
+  }
 
-    // Walk the string counting braces to find the matching closing brace
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    let end = -1;
-
-    for (let i = startBrace; i < html.length; i++) {
-      const ch = html[i];
-      if (escape) { escape = false; continue; }
-      if (ch === "\\" && inString) { escape = true; continue; }
-      if (ch === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (ch === "{") depth++;
-      else if (ch === "}") {
-        depth--;
-        if (depth === 0) { end = i; break; }
+  // Regex-assisted fallback to find ytInitialData assignment start index
+  const regexPattern = /(?:var\s+|window\[['"]ytInitialData['"]\]\s*=\s*|ytInitialData\s*=\s*)\{/g;
+  let match;
+  while ((match = regexPattern.exec(html)) !== null) {
+    const braceIndex = html.indexOf("{", match.index);
+    if (braceIndex !== -1) {
+      const jsonStr = extractBalancedJsonObject(html, braceIndex);
+      if (jsonStr) {
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (parsed && typeof parsed === "object") {
+            return parsed;
+          }
+        } catch (e) {
+          console.warn("Regex-assisted bracket parse error:", e);
+        }
       }
     }
+  }
 
-    if (end === -1) continue;
+  return null;
+}
 
-    try {
-      return JSON.parse(html.slice(startBrace, end + 1));
-    } catch (e) {
-      console.warn("JSON.parse failed for pattern", pattern, e);
+/**
+ * Extracts a balanced JSON string starting from startIndex (which must point to '{').
+ * Properly handles escaped characters and nested quote strings.
+ */
+function extractBalancedJsonObject(str, startIndex) {
+  let depth = 0;
+  let inString = false;
+  let quoteChar = "";
+  let isEscaped = false;
+
+  for (let i = startIndex; i < str.length; i++) {
+    const char = str[i];
+
+    if (isEscaped) {
+      isEscaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      isEscaped = true;
+      continue;
+    }
+
+    if (inString) {
+      if (char === quoteChar) {
+        inString = false;
+        quoteChar = "";
+      }
+    } else {
+      if (char === '"' || char === "'") {
+        inString = true;
+        quoteChar = char;
+      } else if (char === "{") {
+        depth++;
+      } else if (char === "}") {
+        depth--;
+        if (depth === 0) {
+          return str.slice(startIndex, i + 1);
+        }
+      }
     }
   }
 
