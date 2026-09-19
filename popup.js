@@ -86,6 +86,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     checkBackendHealth();
   });
 
+  // Debug button — temporary diagnostic
+  const btnDebug = document.getElementById("btn-debug");
+  if (btnDebug) {
+    btnDebug.addEventListener("click", () => {
+      chrome.runtime.sendMessage({ action: "DEBUG_FETCH" }, (res) => {
+        console.log("DEBUG RESULT:", JSON.stringify(res, null, 2));
+        alert("DEBUG (check console):\n" + JSON.stringify(res, null, 2));
+      });
+    });
+  }
+
   // Load Today's watch history automatically on popup launch
   loadWatchHistory("today");
 

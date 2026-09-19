@@ -12,7 +12,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.error("YouTube History Summarizer background error:", error);
         sendResponse({ success: false, error: error.message || "Failed to retrieve YouTube history." });
       });
-    return true; // Keep message port open for async response
+    return true;
+  }
+
+  if (request.action === "DEBUG_FETCH") {
+    fetch("https://www.youtube.com/feed/history", {
+      method: "GET",
+      credentials: "include",
+      headers: { "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" }
+    })
+      .then(r => r.text())
+      .then(html => {
+        const hasYtData = html.includes("ytInitialData");
+        const markers = [
+          "var ytInitialData = {",
+          "var ytInitialData={",
+          "window[\"ytInitialData\"] = {",
+          "ytInitialData = {",
+          "ytInitialData={"
+        ];
+        const found = markers.filter(m => html.includes(m));
+        const ytData = extractYtInitialData(html);
+        const hasSectionList = !!ytData?.contents?.twoColumnBrowseResultsRenderer?.tabs;
+        sendResponse({
+          htmlLength: html.length,
+          hasYtData,
+          markersFound: found,
+          ytDataParsed: !!ytData,
+          hasSectionList,
+          snippet: html.slice(html.indexOf("ytInitialData"), html.indexOf("ytInitialData") + 200)
+        });
+      })
+      .catch(e => sendResponse({ error: e.message }));
+    return true;
   }
 });
 
